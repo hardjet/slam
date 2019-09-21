@@ -29,7 +29,7 @@ openvslam地址：https://github.com/xdspacelab/openvslam
 ### 特征点匹配
 博客链接：[第二篇 特征点匹配以及openvslam中的相关实现详解](https://www.cnblogs.com/hardjet/p/11448272.html)
 
-运行测试程序示例：
+运行测试特征点匹配测试：
 
 ```shell
 ./test_match -i /home/anson/work/vslam/vslam/data/match/imgs_sample \
@@ -37,6 +37,9 @@ openvslam地址：https://github.com/xdspacelab/openvslam
 --debug
 ```
 
+运行不同的相机orb特征点匹配测试：
 
-
+```shell
+./orb_compare
+```
 
