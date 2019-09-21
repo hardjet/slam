@@ -15,13 +15,6 @@
 #include "openvslam/feature/orb_extractor.h"
 #include "openvslam/match/area.h"
 
-#ifdef USE_STACK_TRACE_LOGGER
-#include <glog/logging.h>
-#endif
-
-#ifdef USE_GOOGLE_PERFTOOLS
-#include <gperftools/profiler.h>
-#endif
 
 using namespace std;
 using namespace cv;
@@ -87,29 +80,18 @@ void opencv_match(cv::Mat& img_1, cv::Mat& img_2)
 
     Mat img_goodmatch;
     drawMatches ( img_1, keypoints_1, img_2, keypoints_2, good_matches, img_goodmatch );
+    resize(img_goodmatch, img_goodmatch, Size(img_1.cols*1.2, img_1.rows));
     imshow ( "cv优化后匹配点对", img_goodmatch );
 
 }
 
 
-void match(const std::shared_ptr<openvslam::config>& cfg, const std::string& vocab_file_path, const std::string& image_dir_path)
+void match(const std::shared_ptr<openvslam::config>& cfg, const std::string& image_dir_path)
 {
     using namespace openvslam;
     // 获取图像
     image_sequence sequence(image_dir_path, 10);
     const auto frames = sequence.get_frames();
-
-    // load ORB vocabulary
-    spdlog::info("loading ORB vocabulary: {}", vocab_file_path);
-    auto bow_vocab = new data::bow_vocabulary();
-    try {
-        bow_vocab->loadFromBinaryFile(vocab_file_path);
-    }
-    catch (const std::exception& e) {
-        spdlog::critical("wrong path to vocabulary");
-        delete bow_vocab;
-        exit(EXIT_FAILURE);
-    }
 
 
     auto extractor = new feature::orb_extractor(cfg->orb_params_);
@@ -121,9 +103,8 @@ void match(const std::shared_ptr<openvslam::config>& cfg, const std::string& voc
     auto img2 = cv::imread(frames.at(1).img_path_, cv::IMREAD_UNCHANGED);
     util::convert_to_grayscale(img2, camera->color_order_);
 
-
-    auto init_frm_ = data::frame(img1, 0., extractor, bow_vocab, camera, cfg->true_depth_thr_, cv::Mat{});
-    auto curr_frm = data::frame(img2, 0., extractor, bow_vocab, camera, cfg->true_depth_thr_, cv::Mat{});
+    auto init_frm_ = data::frame(img1, 0., extractor, nullptr, camera, cfg->true_depth_thr_, cv::Mat{});
+    auto curr_frm = data::frame(img2, 0., extractor, nullptr, camera, cfg->true_depth_thr_, cv::Mat{});
 
     // ============= BruteForce-Hamming 匹配方法
     Ptr<DescriptorMatcher> matcher1  = DescriptorMatcher::create ( "BruteForce-Hamming" );
@@ -161,8 +142,8 @@ void match(const std::shared_ptr<openvslam::config>& cfg, const std::string& voc
     Mat img_goodmatch;
 
     drawMatches ( img1, init_frm_.keypts_, img2, curr_frm.keypts_, good_matches, img_goodmatch );
+    resize(img_goodmatch, img_goodmatch, Size(img1.cols*1.2, img1.rows));
     imshow ( "BruteForce-Hamming", img_goodmatch );
-
 
     // ==============================
 
@@ -206,6 +187,7 @@ void match(const std::shared_ptr<openvslam::config>& cfg, const std::string& voc
     imshow ( "openvslam keypts", im_kpts );
 
     cv::drawMatches ( img1, init_frm_.keypts_, img2, curr_frm.keypts_, good_matches, img_goodmatch );
+    resize(img_goodmatch, img_goodmatch, Size(img1.cols*1.2, img1.rows));
     cv::imshow("openvslam", img_goodmatch);
     cv::waitKey(0);
 
@@ -218,18 +200,12 @@ void match(const std::shared_ptr<openvslam::config>& cfg, const std::string& voc
 
 int main(int argc, char* argv[])
 {
-#ifdef USE_STACK_TRACE_LOGGER
-    google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler();
-#endif
 
     // create options
     popl::OptionParser op("Allowed options");
     auto help = op.add<popl::Switch>("h", "help", "produce help message");
-    auto vocab_file_path = op.add<popl::Value<std::string>>("v", "vocab", "vocabulary file path");
     auto img_dir_path = op.add<popl::Value<std::string>>("i", "img-dir", "directory path which contains images");
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
-    auto mask_img_path = op.add<popl::Value<std::string>>("", "mask", "mask image path", "");
     auto debug_mode = op.add<popl::Switch>("", "debug", "debug mode");
     try {
         op.parse(argc, argv);
@@ -246,7 +222,7 @@ int main(int argc, char* argv[])
         std::cerr << op << std::endl;
         return EXIT_FAILURE;
     }
-    if (!vocab_file_path->is_set() || !img_dir_path->is_set() || !config_file_path->is_set()) {
+    if (!img_dir_path->is_set() || !config_file_path->is_set()) {
         std::cerr << "invalid arguments" << std::endl;
         std::cerr << std::endl;
         std::cerr << op << std::endl;
@@ -273,25 +249,8 @@ int main(int argc, char* argv[])
     }
 
     std::cout << *cfg << std::endl;
-    match(cfg, vocab_file_path->value(), img_dir_path->value());
+    match(cfg, img_dir_path->value());
 
-#ifdef USE_GOOGLE_PERFTOOLS
-    ProfilerStart("slam.prof");
-#endif
-
-//    // run tracking
-//    if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
-//        mono_tracking(cfg, vocab_file_path->value(), img_dir_path->value(), mask_img_path->value(),
-//                      frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
-//                      eval_log->is_set(), map_db_path->value());
-//    }
-//    else {
-//        throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());
-//    }
-
-#ifdef USE_GOOGLE_PERFTOOLS
-    ProfilerStop();
-#endif
 
     return EXIT_SUCCESS;
 
