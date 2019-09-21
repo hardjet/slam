@@ -8,19 +8,21 @@ openvslam地址：https://github.com/xdspacelab/openvslam
 
 ## 文件说明
 
+```yaml
 
-|--3rd              使用到的第三方库，与openvslam一致
-|--cmake            程序依赖库的cmake
-|--config_files     测试程序使用的一些配置文件
-|--data             测试程序使用的数据
-|----match          特征点匹配示例用到的数据
+|--3rd                             使用到的第三方库，与openvslam一致
+|--cmake                      程序依赖库的cmake
+|--config_files            测试程序使用的一些配置文件
+|--data                           测试程序使用的数据
+|----match                    特征点匹配示例用到的数据
 |------imgs_sample  测试程序使用到的一些图片
-|------indemend     indemind相机数据
-|------realsense    realsense D435相机数据
-|--match            特征点匹配示例
-|----test_match     特征点匹配测试
-|----orb_compare    不同的相机orb特征点匹配测试
+|------indemend         indemind相机数据
+|------realsense           realsense D435相机数据
+|--match                       特征点匹配示例
+|----test_match          特征点匹配测试
+|----orb_compare     不同的相机orb特征点匹配测试
 
+```
 
 ## 示例
 
